@@ -17,6 +17,14 @@ create table attendees (
   unique(event_id, email)
 );
 
+-- All attendees audit table (append-only)
+create table all_attendees (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid references events(id) on delete set null,
+  email text not null,
+  created_at timestamptz default now()
+);
+
 -- Enable realtime for attendees table
 alter publication supabase_realtime add table attendees;
 

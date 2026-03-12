@@ -54,15 +54,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
+  const trimmedEmail = email.trim()
+  const trimmedName = name?.trim() || null
+
   const { error: insertError } = await supabaseServer
     .from('attendees')
-    .insert({ event_id: event.id, email: email.trim(), name: name?.trim() || null })
+    .insert({ event_id: event.id, email: trimmedEmail, name: trimmedName })
 
   if (insertError) {
     if (insertError.code === '23505') {
       return NextResponse.json({ error: 'You have already joined this event!' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Failed to join. Please try again.' }, { status: 500 })
+  }
+
+  const { error: auditError } = await supabaseServer
+    .from('all_attendees')
+    .insert({ event_id: event.id, email: trimmedEmail })
+
+  if (auditError) {
+    return NextResponse.json({ error: 'Failed to record attendee audit.' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
